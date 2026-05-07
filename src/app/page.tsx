@@ -1,125 +1,215 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const [tool, setTool] = useState("");
   const [plan, setPlan] = useState("");
   const [cost, setCost] = useState("");
   const [teamSize, setTeamSize] = useState("");
+
   const [result, setResult] = useState("");
   const [savings, setSavings] = useState(0);
 
-  // Save to localStorage
+  // Save form data to localStorage
   useEffect(() => {
-    const data = { tool, plan, cost, teamSize };
-    localStorage.setItem("formData", JSON.stringify(data));
+    const formData = {
+      tool,
+      plan,
+      cost,
+      teamSize,
+    };
+
+    localStorage.setItem("auditForm", JSON.stringify(formData));
   }, [tool, plan, cost, teamSize]);
 
-  // Load from localStorage
+  // Load form data from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("formData");
-    if (saved) {
-      const data = JSON.parse(saved);
-      setTool(data.tool || "");
-      setPlan(data.plan || "");
-      setCost(data.cost || "");
-      setTeamSize(data.teamSize || "");
+    const savedData = localStorage.getItem("auditForm");
+
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+
+      setTool(parsedData.tool || "");
+      setPlan(parsedData.plan || "");
+      setCost(parsedData.cost || "");
+      setTeamSize(parsedData.teamSize || "");
     }
   }, []);
 
+  // Audit Logic
   const analyzeSpend = () => {
+    if (!tool || !plan || !cost || !teamSize) {
+      setResult("Please fill all fields.");
+      setSavings(0);
+      return;
+    }
     let message = "";
     let moneySaved = 0;
 
-    //Rule 1
-    if (teamSize > "1" && plan === "individual") {
-      message =
-        "You are using an individual plan for multiple users. Switching to a team plan could reduce costs.";
-      moneySaved = 10;
+    const team = Number(teamSize);
+    const monthlyCost = Number(cost);
+
+    // CHATGPT
+    if (tool === "chatgpt") {
+      if (plan === "individual" && team > 1) {
+        message =
+          "Your team is using ChatGPT individual plans for multiple users. Switching to a team plan could improve collaboration and reduce costs.";
+
+        moneySaved = 15;
+      } else if (plan === "enterprise" && team < 5) {
+        message =
+          "Your company appears too small for ChatGPT Enterprise pricing. A lower-tier plan may provide better value.";
+
+        moneySaved = 30;
+      } else {
+        message =
+          "Your ChatGPT spending appears optimized for your current team usage.";
+      }
     }
 
-    //Rule 2
-    else if (teamSize < "5" && plan === "enterprise") {
-      message =
-        "Your team is too small for an enterprise plan. Downgrading may save money.";
-      moneySaved = 20;
+    // CLAUDE
+    else if (tool === "claude") {
+      if (monthlyCost > 100) {
+        message =
+          "Your Claude usage cost is relatively high. You may benefit from optimizing usage or moving some workloads to lower-cost models.";
+
+        moneySaved = 25;
+      } else {
+        message = "Your Claude configuration looks reasonably optimized.";
+      }
     }
-    //Rule 3
+
+    // GITHUB COPILOT
+    else if (tool === "copilot") {
+      if (team > 3 && plan === "individual") {
+        message =
+          "Your engineering team is using GitHub Copilot individual plans. Switching to a business plan may provide better management features and pricing efficiency.";
+
+        moneySaved = 40;
+      } else {
+        message =
+          "Your GitHub Copilot setup appears efficient for your current team.";
+      }
+    }
+
+    // CURSOR
+    else if (tool === "cursor") {
+      if (monthlyCost > 50) {
+        message =
+          "Your Cursor spending is higher than average for your current team size. Reviewing inactive seats or plan levels could reduce costs.";
+
+        moneySaved = 20;
+      } else {
+        message = "Your Cursor spending appears healthy and optimized.";
+      }
+    }
+
+    // DEFAULT
     else {
-      message = "Your current AI spending looks optimized for your team size.";
-      moneySaved = 0;
+      message = "Please select a valid tool.";
     }
+
     setResult(message);
     setSavings(moneySaved);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">AI Spend Audit</h1>
+    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-lg p-6">
+        {/* Heading */}
+        <h1 className="text-3xl font-bold text-center mb-6">
+          AI Spend Optimizer
+        </h1>
 
-        {/* Tool */}
-        <select
-          value={tool}
-          onChange={(e) => setTool(e.target.value)}
-          className="w-full mb-3 p-2 border rounded"
-        >
-          <option value="">Select Tool</option>
-          <option value="chatgpt">ChatGPT</option>
-          <option value="copilot">GitHub Copilot</option>
-          <option value="claude">Claude</option>
-        </select>
+        {/* Tool Dropdown */}
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">Select Tool</label>
 
-        {/* Plan */}
-        <select
-          value={plan}
-          onChange={(e) => setPlan(e.target.value)}
-          className="w-full mb-3 p-2 border rounded"
-        >
-          <option value="">Select Plan</option>
-          <option value="individual">Individual</option>
-          <option value="team">Team</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
+          <select
+            value={tool}
+            onChange={(e) => setTool(e.target.value)}
+            className="w-full border p-3 rounded-lg"
+          >
+            <option value="">Choose Tool</option>
 
-        {/* Cost */}
-        <input
-          type="number"
-          placeholder="Monthly Cost ($)"
-          value={cost}
-          onChange={(e) => setCost(e.target.value)}
-          className="w-full mb-3 p-2 border rounded"
-        />
+            <option value="chatgpt">ChatGPT</option>
+
+            <option value="claude">Claude</option>
+
+            <option value="copilot">GitHub Copilot</option>
+
+            <option value="cursor">Cursor</option>
+          </select>
+        </div>
+
+        {/* Plan Dropdown */}
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">Select Plan</label>
+
+          <select
+            value={plan}
+            onChange={(e) => setPlan(e.target.value)}
+            className="w-full border p-3 rounded-lg"
+          >
+            <option value="">Choose Plan</option>
+
+            <option value="individual">Individual</option>
+
+            <option value="team">Team</option>
+
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
+
+        {/* Monthly Cost */}
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">Monthly Cost ($)</label>
+
+          <input
+            type="number"
+            placeholder="Enter monthly spend"
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+            className="w-full border p-3 rounded-lg"
+          />
+        </div>
 
         {/* Team Size */}
-        <input
-          type="number"
-          placeholder="Team Size"
-          value={teamSize}
-          onChange={(e) => setTeamSize(e.target.value)}
-          className="w-full mb-4 p-2 border rounded"
-        />
+        <div className="mb-6">
+          <label className="block mb-2 font-medium">Team Size</label>
 
-        {/* Button */}
+          <input
+            type="number"
+            placeholder="Enter team size"
+            value={teamSize}
+            onChange={(e) => setTeamSize(e.target.value)}
+            className="w-full border p-3 rounded-lg"
+          />
+        </div>
+
+        {/* Analyze Button */}
         <button
           className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
           onClick={analyzeSpend}
         >
-          Analyze
+          Analyze Spend
         </button>
+
+        {/* Result */}
         {result && (
           <div className="mt-6 bg-gray-100 p-4 rounded-lg">
-            <h2 className="text-xl font-semibold mb-2">Audit Result</h2>
+            <h2 className="text-2xl font-bold text-black mb-3">Audit Result</h2>
 
-            <p className="mb-2">{result}</p>
+            <p className="mb-3 text-gray-700">{result}</p>
 
             <p className="font-bold text-green-600">
-              Potential Savings: ${savings}/month
+              Potential Savings: ${savings}/month ($
+              {savings * 12}/year)
             </p>
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }
