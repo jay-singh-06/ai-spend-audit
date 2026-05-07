@@ -7,6 +7,8 @@ export default function Home() {
   const [plan, setPlan] = useState("");
   const [cost, setCost] = useState("");
   const [teamSize, setTeamSize] = useState("");
+  const [result, setResult] = useState("");
+  const [savings, setSavings] = useState(0);
 
   // Save to localStorage
   useEffect(() => {
@@ -26,12 +28,36 @@ export default function Home() {
     }
   }, []);
 
+  const analyzeSpend = () => {
+    let message = "";
+    let moneySaved = 0;
+
+    //Rule 1
+    if (teamSize > "1" && plan === "individual") {
+      message =
+        "You are using an individual plan for multiple users. Switching to a team plan could reduce costs.";
+      moneySaved = 10;
+    }
+
+    //Rule 2
+    else if (teamSize < "5" && plan === "enterprise") {
+      message =
+        "Your team is too small for an enterprise plan. Downgrading may save money.";
+      moneySaved = 20;
+    }
+    //Rule 3
+    else {
+      message = "Your current AI spending looks optimized for your team size.";
+      moneySaved = 0;
+    }
+    setResult(message);
+    setSavings(moneySaved);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">
-          AI Spend Audit
-        </h1>
+        <h1 className="text-2xl font-bold mb-4 text-center">AI Spend Audit</h1>
 
         {/* Tool */}
         <select
@@ -77,11 +103,22 @@ export default function Home() {
 
         {/* Button */}
         <button
-          className="w-full bg-black text-white py-2 rounded"
-          onClick={() => alert("Next step: add logic")}
+          className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
+          onClick={analyzeSpend}
         >
           Analyze
         </button>
+        {result && (
+          <div className="mt-6 bg-gray-100 p-4 rounded-lg">
+            <h2 className="text-xl font-semibold mb-2">Audit Result</h2>
+
+            <p className="mb-2">{result}</p>
+
+            <p className="font-bold text-green-600">
+              Potential Savings: ${savings}/month
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
