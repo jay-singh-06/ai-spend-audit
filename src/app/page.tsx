@@ -31,6 +31,8 @@ export default function Home() {
 
   const [savings, setSavings] = useState(0);
 
+  const [summary, setSummary] = useState("");
+
   // Save to localStorage
   useEffect(() => {
     const data = {
@@ -55,7 +57,7 @@ export default function Home() {
             plan: "",
             cost: "",
           },
-        ]
+        ],
       );
 
       setTeamSize(data.teamSize || "");
@@ -63,11 +65,7 @@ export default function Home() {
   }, []);
 
   // Handle input changes
-  const handleToolChange = (
-    index: number,
-    field: string,
-    value: string
-  ) => {
+  const handleToolChange = (index: number, field: string, value: string) => {
     const updatedTools = [...tools];
 
     updatedTools[index] = {
@@ -88,6 +86,33 @@ export default function Home() {
         cost: "",
       },
     ]);
+  };
+
+  //Ai summary
+  const generateSummary = async (
+    auditResults: AuditResult[],
+    totalSavings: number,
+  ) => {
+    try {
+      const response = await fetch("/api/summary", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          results: auditResults,
+          savings: totalSavings,
+        }),
+      });
+      const data = await response.json();
+      setSummary(data.summary);
+    } catch (error) {
+      console.log(error);
+
+      setSummary("Unable to generate AI summary right now.");
+    }
   };
 
   // Audit Logic
@@ -121,12 +146,7 @@ export default function Home() {
           });
 
           totalSavings += 15;
-        }
-
-        else if (
-          item.plan === "enterprise" &&
-          team < 5
-        ) {
+        } else if (item.plan === "enterprise" && team < 5) {
           auditResults.push({
             tool: "ChatGPT",
             message:
@@ -135,9 +155,7 @@ export default function Home() {
           });
 
           totalSavings += 30;
-        }
-
-        else {
+        } else {
           auditResults.push({
             tool: "ChatGPT",
             message:
@@ -158,9 +176,7 @@ export default function Home() {
           });
 
           totalSavings += 25;
-        }
-
-        else {
+        } else {
           auditResults.push({
             tool: "Claude",
             message:
@@ -172,10 +188,7 @@ export default function Home() {
 
       // GITHUB COPILOT
       else if (item.tool === "copilot") {
-        if (
-          item.plan === "individual" &&
-          team > 3
-        ) {
+        if (item.plan === "individual" && team > 3) {
           auditResults.push({
             tool: "GitHub Copilot",
             message:
@@ -184,12 +197,7 @@ export default function Home() {
           });
 
           totalSavings += 40;
-        }
-
-        else if (
-          item.plan === "enterprise" &&
-          team < 10
-        ) {
+        } else if (item.plan === "enterprise" && team < 10) {
           auditResults.push({
             tool: "GitHub Copilot",
             message:
@@ -198,9 +206,7 @@ export default function Home() {
           });
 
           totalSavings += 20;
-        }
-
-        else {
+        } else {
           auditResults.push({
             tool: "GitHub Copilot",
             message:
@@ -221,9 +227,7 @@ export default function Home() {
           });
 
           totalSavings += 20;
-        }
-
-        else {
+        } else {
           auditResults.push({
             tool: "Cursor",
             message:
@@ -237,12 +241,13 @@ export default function Home() {
     setResults(auditResults);
 
     setSavings(totalSavings);
+
+    generateSummary(auditResults, totalSavings);
   };
 
   return (
     <main className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
       <div className="bg-white w-full max-w-2xl rounded-2xl shadow-lg p-6">
-
         {/* Heading */}
         <h1 className="text-3xl font-bold text-center mb-6">
           AI Spend Optimizer
@@ -250,70 +255,39 @@ export default function Home() {
 
         {/* Multiple Tool Inputs */}
         {tools.map((item, index) => (
-          <div
-            key={index}
-            className="border p-4 rounded-xl mb-4"
-          >
-            <h2 className="font-bold text-lg mb-3">
-              Tool {index + 1}
-            </h2>
+          <div key={index} className="border p-4 rounded-xl mb-4">
+            <h2 className="font-bold text-lg mb-3">Tool {index + 1}</h2>
 
             {/* Tool */}
             <select
               value={item.tool}
-              onChange={(e) =>
-                handleToolChange(
-                  index,
-                  "tool",
-                  e.target.value
-                )
-              }
+              onChange={(e) => handleToolChange(index, "tool", e.target.value)}
               className="w-full mb-3 p-3 border rounded-lg"
             >
               <option value="">Select Tool</option>
 
-              <option value="chatgpt">
-                ChatGPT
-              </option>
+              <option value="chatgpt">ChatGPT</option>
 
-              <option value="claude">
-                Claude
-              </option>
+              <option value="claude">Claude</option>
 
-              <option value="copilot">
-                GitHub Copilot
-              </option>
+              <option value="copilot">GitHub Copilot</option>
 
-              <option value="cursor">
-                Cursor
-              </option>
+              <option value="cursor">Cursor</option>
             </select>
 
             {/* Plan */}
             <select
               value={item.plan}
-              onChange={(e) =>
-                handleToolChange(
-                  index,
-                  "plan",
-                  e.target.value
-                )
-              }
+              onChange={(e) => handleToolChange(index, "plan", e.target.value)}
               className="w-full mb-3 p-3 border rounded-lg"
             >
               <option value="">Select Plan</option>
 
-              <option value="individual">
-                Individual
-              </option>
+              <option value="individual">Individual</option>
 
-              <option value="team">
-                Team
-              </option>
+              <option value="team">Team</option>
 
-              <option value="enterprise">
-                Enterprise
-              </option>
+              <option value="enterprise">Enterprise</option>
             </select>
 
             {/* Cost */}
@@ -321,13 +295,7 @@ export default function Home() {
               type="number"
               placeholder="Monthly Cost ($)"
               value={item.cost}
-              onChange={(e) =>
-                handleToolChange(
-                  index,
-                  "cost",
-                  e.target.value
-                )
-              }
+              onChange={(e) => handleToolChange(index, "cost", e.target.value)}
               className="w-full p-3 border rounded-lg"
             />
           </div>
@@ -335,17 +303,13 @@ export default function Home() {
 
         {/* Team Size */}
         <div className="mb-4">
-          <label className="block mb-2 font-medium">
-            Team Size
-          </label>
+          <label className="block mb-2 font-medium">Team Size</label>
 
           <input
             type="number"
             placeholder="Enter team size"
             value={teamSize}
-            onChange={(e) =>
-              setTeamSize(e.target.value)
-            }
+            onChange={(e) => setTeamSize(e.target.value)}
             className="w-full p-3 border rounded-lg"
           />
         </div>
@@ -369,29 +333,20 @@ export default function Home() {
         {/* Results */}
         {results.length > 0 && (
           <div className="mt-6">
-            <h2 className="text-2xl font-bold mb-4">
-              Audit Results
-            </h2>
+            <h2 className="text-2xl font-bold mb-4">Audit Results</h2>
 
             <div className="space-y-4">
               {results.map((item, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-100 p-5 rounded-xl"
-                >
+                <div key={index} className="bg-gray-100 p-5 rounded-xl">
                   <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-xl font-bold">
-                      {item.tool}
-                    </h3>
+                    <h3 className="text-xl font-bold">{item.tool}</h3>
 
                     <span className="text-green-600 font-bold">
                       ${item.savings}/mo
                     </span>
                   </div>
 
-                  <p className="text-gray-700">
-                    {item.message}
-                  </p>
+                  <p className="text-gray-700">{item.message}</p>
                 </div>
               ))}
             </div>
@@ -402,14 +357,19 @@ export default function Home() {
                 Total Potential Savings
               </h3>
 
-              <p className="text-3xl font-bold">
-                ${savings}/month
-              </p>
+              <p className="text-3xl font-bold">${savings}/month</p>
 
-              <p className="text-lg text-gray-300">
-                ${savings * 12}/year
-              </p>
+              <p className="text-lg text-gray-300">${savings * 12}/year</p>
             </div>
+
+            {/* AI Summary */}
+            {summary && (
+              <div className="mt-6 bg-white border p-5 rounded-xl">
+                <h3 className="text-xl font-bold mb-3">AI-Generated Summary</h3>
+
+                <p className="text-gray-700 leading-7">{summary}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
