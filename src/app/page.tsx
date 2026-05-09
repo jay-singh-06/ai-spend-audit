@@ -1,4 +1,5 @@
 "use client";
+import { supabase } from "@/lib/supabase";
 
 import { useEffect, useState } from "react";
 
@@ -26,12 +27,12 @@ export default function Home() {
 
   // Other states
   const [teamSize, setTeamSize] = useState("");
-
   const [results, setResults] = useState<AuditResult[]>([]);
-
   const [savings, setSavings] = useState(0);
-
   const [summary, setSummary] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [role, setRole] = useState("");
 
   // Save to localStorage
   useEffect(() => {
@@ -113,6 +114,31 @@ export default function Home() {
 
       setSummary("Unable to generate AI summary right now.");
     }
+  };
+
+  const saveLead = async () => {
+    if (!email) {
+      alert("please enter email");
+      return;
+    }
+
+    const { error } = await supabase.from("leads").insert([
+      {
+        email,
+        company,
+        role,
+        team_size: Number(teamSize),
+        savings,
+      },
+    ]);
+
+    if (error) {
+      console.log(error);
+      alert("Failed to save lead");
+      return;
+    }
+
+    alert("Audit saved successfully!");
   };
 
   // Audit Logic
@@ -360,6 +386,41 @@ export default function Home() {
               <p className="text-3xl font-bold">${savings}/month</p>
 
               <p className="text-lg text-gray-300">${savings * 12}/year</p>
+            </div>
+
+            <div className="mt-6 bg-white border p-5 rounded-xl">
+              <h3 className="text-xl font-bold mb-4">Save Your Audit Report</h3>
+
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-3 border rounded-lg mb-3"
+              />
+
+              <input
+                type="text"
+                placeholder="Company Name"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                className="w-full p-3 border rounded-lg mb-3"
+              />
+
+              <input
+                type="text"
+                placeholder="Your Role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full p-3 border rounded-lg mb-4"
+              />
+
+              <button
+                onClick={saveLead}
+                className="w-full bg-black text-white py-3 rounded-lg"
+              >
+                Save Audit Report
+              </button>
             </div>
 
             {/* AI Summary */}
