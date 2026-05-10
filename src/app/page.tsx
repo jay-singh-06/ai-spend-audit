@@ -33,6 +33,8 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [savingAudit, setSavingAudit] = useState(false);
 
   // Save to localStorage
   useEffect(() => {
@@ -95,6 +97,7 @@ export default function Home() {
     totalSavings: number,
   ) => {
     try {
+      setLoadingSummary(true);
       const response = await fetch("/api/summary", {
         method: "POST",
 
@@ -113,6 +116,8 @@ export default function Home() {
       console.log(error);
 
       setSummary("Unable to generate AI summary right now.");
+    } finally {
+      setLoadingSummary(false);
     }
   };
 
@@ -122,29 +127,41 @@ export default function Home() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("leads")
-      .insert([
-        {
-          email,
-          company,
-          role,
-          team_size: Number(teamSize),
-          savings,
-          audit_results: results,
-          summary,
-        },
-      ])
-      .select();
+    try {
+      setSavingAudit(true);
 
-    if (error) {
+      const { data, error } = await supabase
+        .from("leads")
+        .insert([
+          {
+            email,
+            company,
+            role,
+            team_size: Number(teamSize),
+            savings,
+            audit_results: results,
+            summary,
+          },
+        ])
+        .select();
+
+      if (error) {
+        console.log(error);
+        alert("Failed to save lead");
+        return;
+      }
+
+      const auditId = data?.[0]?.id;
+
+      alert("Audit saved successfully!");
+
+      window.open(`/audit/${auditId}`, "_blank");
+    } catch (error) {
       console.log(error);
-      alert("Failed to save lead");
-      return;
+      alert("Something went wrong");
+    } finally {
+      setSavingAudit(false);
     }
-    const auditId = data?.[0]?.id;
-    alert("Audit saved successfully!");
-    window.open(`/audit/${auditId}`, "_blank");
   };
 
   // Audit Logic
@@ -159,6 +176,7 @@ export default function Home() {
     }
 
     let totalSavings = 0;
+    setSummary("");
 
     const auditResults: AuditResult[] = [];
 
@@ -357,9 +375,14 @@ export default function Home() {
         {/* Analyze Button */}
         <button
           onClick={analyzeSpend}
-          className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
+          disabled={loadingSummary}
+          className={`w-full py-3 rounded-lg transition text-white ${
+            loadingSummary
+              ? "bg-gray-500 cursor-not-allowed"
+              : "bg-black hover:bg-gray-800"
+          }`}
         >
-          Analyze Spend
+          {loadingSummary ? "Generating Summary..." : "Analyze Spend"}
         </button>
 
         {/* Results */}
@@ -421,11 +444,17 @@ export default function Home() {
                 className="w-full p-3 border rounded-lg mb-4"
               />
 
+              {/* Save Button */}
               <button
                 onClick={saveLead}
-                className="w-full bg-black text-white py-3 rounded-lg"
+                disabled={savingAudit}
+                className={`w-full py-3 rounded-lg text-white transition ${
+                  savingAudit
+                    ? "bg-gray-500 cursor-not-allowed"
+                    : "bg-black hover:bg-gray-800"
+                }`}
               >
-                Save Audit Report
+                {savingAudit ? "Saving..." : "Save Audit Report"}
               </button>
             </div>
 
