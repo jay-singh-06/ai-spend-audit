@@ -122,23 +122,29 @@ export default function Home() {
       return;
     }
 
-    const { error } = await supabase.from("leads").insert([
-      {
-        email,
-        company,
-        role,
-        team_size: Number(teamSize),
-        savings,
-      },
-    ]);
+    const { data, error } = await supabase
+      .from("leads")
+      .insert([
+        {
+          email,
+          company,
+          role,
+          team_size: Number(teamSize),
+          savings,
+          audit_results: results,
+          summary,
+        },
+      ])
+      .select();
 
     if (error) {
       console.log(error);
       alert("Failed to save lead");
       return;
     }
-
+    const auditId = data?.[0]?.id;
     alert("Audit saved successfully!");
+    window.open(`/audit/${auditId}`, "_blank");
   };
 
   // Audit Logic
