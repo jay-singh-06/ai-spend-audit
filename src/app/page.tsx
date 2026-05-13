@@ -1,5 +1,7 @@
 "use client";
+
 import { supabase } from "@/lib/supabase";
+import jsPDF from "jspdf";
 
 import { useEffect, useState } from "react";
 
@@ -91,13 +93,14 @@ export default function Home() {
     ]);
   };
 
-  //Ai summary
+  // AI summary
   const generateSummary = async (
     auditResults: AuditResult[],
     totalSavings: number,
   ) => {
     try {
       setLoadingSummary(true);
+
       const response = await fetch("/api/summary", {
         method: "POST",
 
@@ -110,7 +113,9 @@ export default function Home() {
           savings: totalSavings,
         }),
       });
+
       const data = await response.json();
+
       setSummary(data.summary);
     } catch (error) {
       console.log(error);
@@ -121,9 +126,10 @@ export default function Home() {
     }
   };
 
+  // Save audit
   const saveLead = async () => {
     if (!email) {
-      alert("please enter email");
+      alert("Please enter email");
       return;
     }
 
@@ -164,6 +170,59 @@ export default function Home() {
     }
   };
 
+  // PDF download function
+  const downloadPDF = () => {
+  try {
+    const pdf = new jsPDF();
+
+    pdf.setFontSize(22);
+    pdf.text("AI Spend Audit Report", 20, 20);
+
+    pdf.setFontSize(14);
+    pdf.text(`Team Size: ${teamSize}`, 20, 40);
+    pdf.text(`Monthly Savings: $${savings}`, 20, 50);
+    pdf.text(`Yearly Savings: $${savings * 12}`, 20, 60);
+
+    let y = 80;
+
+    results.forEach((item, index) => {
+      pdf.setFontSize(16);
+      pdf.text(`${index + 1}. ${item.tool}`, 20, y);
+
+      y += 10;
+
+      pdf.setFontSize(12);
+
+      const lines = pdf.splitTextToSize(item.message, 170);
+      pdf.text(lines, 20, y);
+
+      y += lines.length * 7;
+
+      pdf.text(`Savings: $${item.savings}/month`, 20, y);
+
+      y += 15;
+    });
+
+    if (summary) {
+      pdf.addPage();
+
+      pdf.setFontSize(18);
+      pdf.text("AI Generated Summary", 20, 20);
+
+      pdf.setFontSize(12);
+
+      const summaryLines = pdf.splitTextToSize(summary, 170);
+
+      pdf.text(summaryLines, 20, 40);
+    }
+
+    pdf.save("AI-Spend-Audit-Report.pdf");
+  } catch (error) {
+    console.log(error);
+    alert("Failed to generate PDF");
+  }
+};
+
   // Audit Logic
   const analyzeSpend = () => {
     if (!teamSize) {
@@ -176,6 +235,7 @@ export default function Home() {
     }
 
     let totalSavings = 0;
+
     setSummary("");
 
     const auditResults: AuditResult[] = [];
@@ -296,7 +356,11 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
+    <main
+      id="audit-report"
+      style={{ background: "#f3f4f6", color: "#000" }}
+      className="min-h-screen flex items-center justify-center p-5"
+    >
       <div className="bg-white w-full max-w-2xl rounded-2xl shadow-lg p-6">
         {/* Heading */}
         <h1 className="text-3xl font-bold text-center mb-6">
@@ -387,85 +451,99 @@ export default function Home() {
 
         {/* Results */}
         {results.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-2xl font-bold mb-4">Audit Results</h2>
+          <div id="audit-report">
+            <div className="mt-6">
+              <h2 className="text-2xl font-bold mb-4">Audit Results</h2>
 
-            <div className="space-y-4">
-              {results.map((item, index) => (
-                <div key={index} className="bg-gray-100 p-5 rounded-xl">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-xl font-bold">{item.tool}</h3>
+              <div className="space-y-4">
+                {results.map((item, index) => (
+                  <div key={index} className="bg-gray-100 p-5 rounded-xl">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-xl font-bold">{item.tool}</h3>
 
-                    <span className="text-green-600 font-bold">
-                      ${item.savings}/mo
-                    </span>
+                      <span className="text-green-600 font-bold">
+                        ${item.savings}/mo
+                      </span>
+                    </div>
+
+                    <p className="text-gray-700">{item.message}</p>
                   </div>
-
-                  <p className="text-gray-700">{item.message}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Total Savings */}
-            <div className="mt-6 bg-black text-white p-5 rounded-xl">
-              <h3 className="text-2xl font-bold mb-2">
-                Total Potential Savings
-              </h3>
-
-              <p className="text-3xl font-bold">${savings}/month</p>
-
-              <p className="text-lg text-gray-300">${savings * 12}/year</p>
-            </div>
-
-            <div className="mt-6 bg-white border p-5 rounded-xl">
-              <h3 className="text-xl font-bold mb-4">Save Your Audit Report</h3>
-
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-3 border rounded-lg mb-3"
-              />
-
-              <input
-                type="text"
-                placeholder="Company Name"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                className="w-full p-3 border rounded-lg mb-3"
-              />
-
-              <input
-                type="text"
-                placeholder="Your Role"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full p-3 border rounded-lg mb-4"
-              />
-
-              {/* Save Button */}
-              <button
-                onClick={saveLead}
-                disabled={savingAudit}
-                className={`w-full py-3 rounded-lg text-white transition ${
-                  savingAudit
-                    ? "bg-gray-500 cursor-not-allowed"
-                    : "bg-black hover:bg-gray-800"
-                }`}
-              >
-                {savingAudit ? "Saving..." : "Save Audit Report"}
-              </button>
-            </div>
-
-            {/* AI Summary */}
-            {summary && (
-              <div className="mt-6 bg-white border p-5 rounded-xl">
-                <h3 className="text-xl font-bold mb-3">AI-Generated Summary</h3>
-
-                <p className="text-gray-700 leading-7">{summary}</p>
+                ))}
               </div>
-            )}
+
+              {/* Total Savings */}
+              <div className="mt-6 bg-black text-white p-5 rounded-xl">
+                <h3 className="text-2xl font-bold mb-2">
+                  Total Potential Savings
+                </h3>
+
+                <p className="text-3xl font-bold">${savings}/month</p>
+
+                <p className="text-lg text-gray-300">${savings * 12}/year</p>
+              </div>
+
+              {/* Save Audit */}
+              <div className="mt-6 bg-white border p-5 rounded-xl">
+                <h3 className="text-xl font-bold mb-4">
+                  Save Your Audit Report
+                </h3>
+
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full p-3 border rounded-lg mb-3"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Company Name"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  className="w-full p-3 border rounded-lg mb-3"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Your Role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full p-3 border rounded-lg mb-4"
+                />
+
+                <button
+                  onClick={saveLead}
+                  disabled={savingAudit}
+                  className={`w-full py-3 rounded-lg text-white transition ${
+                    savingAudit
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-black hover:bg-gray-800"
+                  }`}
+                >
+                  {savingAudit ? "Saving..." : "Save Audit Report"}
+                </button>
+              </div>
+
+              {/* PDF Button */}
+              <button
+                onClick={downloadPDF}
+                className="w-full mt-4 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition"
+              >
+                Download PDF Report
+              </button>
+
+              {/* AI Summary */}
+              {summary && (
+                <div className="mt-6 bg-white border p-5 rounded-xl">
+                  <h3 className="text-xl font-bold mb-3">
+                    AI-Generated Summary
+                  </h3>
+
+                  <p className="text-gray-700 leading-7">{summary}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
