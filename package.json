@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "test": "echo test passed",
+    "test": "echo \"No tests yet\"",
     "start": "next start",
     "lint": "eslint"
   },
