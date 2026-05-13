@@ -9,6 +9,8 @@ type ToolItem = {
   tool: string;
   plan: string;
   cost: string;
+  seats: string;
+  useCase: string;
 };
 
 type AuditResult = {
@@ -24,6 +26,8 @@ export default function Home() {
       tool: "",
       plan: "",
       cost: "",
+      seats: "",
+      useCase: "",
     },
   ]);
 
@@ -37,6 +41,7 @@ export default function Home() {
   const [role, setRole] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [savingAudit, setSavingAudit] = useState(false);
+  const [website, setWebsite] = useState("");
 
   // Save to localStorage
   useEffect(() => {
@@ -89,6 +94,8 @@ export default function Home() {
         tool: "",
         plan: "",
         cost: "",
+        seats: "",
+        useCase: "",
       },
     ]);
   };
@@ -128,6 +135,16 @@ export default function Home() {
 
   // Save audit
   const saveLead = async () => {
+    if (website) {
+      return;
+    }
+
+    <input
+      type="text"
+      value={website}
+      onChange={(e) => setWebsite(e.target.value)}
+      className="hidden"
+    />;
     if (!email) {
       alert("Please enter email");
       return;
@@ -172,56 +189,56 @@ export default function Home() {
 
   // PDF download function
   const downloadPDF = () => {
-  try {
-    const pdf = new jsPDF();
+    try {
+      const pdf = new jsPDF();
 
-    pdf.setFontSize(22);
-    pdf.text("AI Spend Audit Report", 20, 20);
+      pdf.setFontSize(22);
+      pdf.text("AI Spend Audit Report", 20, 20);
 
-    pdf.setFontSize(14);
-    pdf.text(`Team Size: ${teamSize}`, 20, 40);
-    pdf.text(`Monthly Savings: $${savings}`, 20, 50);
-    pdf.text(`Yearly Savings: $${savings * 12}`, 20, 60);
+      pdf.setFontSize(14);
+      pdf.text(`Team Size: ${teamSize}`, 20, 40);
+      pdf.text(`Monthly Savings: $${savings}`, 20, 50);
+      pdf.text(`Yearly Savings: $${savings * 12}`, 20, 60);
 
-    let y = 80;
+      let y = 80;
 
-    results.forEach((item, index) => {
-      pdf.setFontSize(16);
-      pdf.text(`${index + 1}. ${item.tool}`, 20, y);
+      results.forEach((item, index) => {
+        pdf.setFontSize(16);
+        pdf.text(`${index + 1}. ${item.tool}`, 20, y);
 
-      y += 10;
+        y += 10;
 
-      pdf.setFontSize(12);
+        pdf.setFontSize(12);
 
-      const lines = pdf.splitTextToSize(item.message, 170);
-      pdf.text(lines, 20, y);
+        const lines = pdf.splitTextToSize(item.message, 170);
+        pdf.text(lines, 20, y);
 
-      y += lines.length * 7;
+        y += lines.length * 7;
 
-      pdf.text(`Savings: $${item.savings}/month`, 20, y);
+        pdf.text(`Savings: $${item.savings}/month`, 20, y);
 
-      y += 15;
-    });
+        y += 15;
+      });
 
-    if (summary) {
-      pdf.addPage();
+      if (summary) {
+        pdf.addPage();
 
-      pdf.setFontSize(18);
-      pdf.text("AI Generated Summary", 20, 20);
+        pdf.setFontSize(18);
+        pdf.text("AI Generated Summary", 20, 20);
 
-      pdf.setFontSize(12);
+        pdf.setFontSize(12);
 
-      const summaryLines = pdf.splitTextToSize(summary, 170);
+        const summaryLines = pdf.splitTextToSize(summary, 170);
 
-      pdf.text(summaryLines, 20, 40);
+        pdf.text(summaryLines, 20, 40);
+      }
+
+      pdf.save("AI-Spend-Audit-Report.pdf");
+    } catch (error) {
+      console.log(error);
+      alert("Failed to generate PDF");
     }
-
-    pdf.save("AI-Spend-Audit-Report.pdf");
-  } catch (error) {
-    console.log(error);
-    alert("Failed to generate PDF");
-  }
-};
+  };
 
   // Audit Logic
   const analyzeSpend = () => {
@@ -379,14 +396,14 @@ export default function Home() {
               className="w-full mb-3 p-3 border rounded-lg"
             >
               <option value="">Select Tool</option>
-
               <option value="chatgpt">ChatGPT</option>
-
               <option value="claude">Claude</option>
-
               <option value="copilot">GitHub Copilot</option>
-
               <option value="cursor">Cursor</option>
+              <option value="anthropic-api">Anthropic API</option>
+              <option value="openai-api">OpenAI API</option>
+              <option value="gemini">Gemini</option>
+              <option value="windsurf">Windsurf</option>
             </select>
 
             {/* Plan */}
@@ -397,11 +414,15 @@ export default function Home() {
             >
               <option value="">Select Plan</option>
 
-              <option value="individual">Individual</option>
-
+              <option value="free">Free</option>
+              <option value="hobby">Hobby</option>
+              <option value="plus">Plus</option>
+              <option value="pro">Pro</option>
+              <option value="max">Max</option>
               <option value="team">Team</option>
-
+              <option value="business">Business</option>
               <option value="enterprise">Enterprise</option>
+              <option value="api">API Direct</option>
             </select>
 
             {/* Cost */}
@@ -410,8 +431,34 @@ export default function Home() {
               placeholder="Monthly Cost ($)"
               value={item.cost}
               onChange={(e) => handleToolChange(index, "cost", e.target.value)}
-              className="w-full p-3 border rounded-lg"
+              className="w-full mb-3 p-3 border rounded-lg"
             />
+
+            {/* Seats */}
+            <input
+              type="number"
+              placeholder="Number of Seats"
+              value={item.seats}
+              onChange={(e) => handleToolChange(index, "seats", e.target.value)}
+              className="w-full mb-3 p-3 border rounded-lg"
+            />
+
+            {/* Use Case */}
+            <select
+              value={item.useCase}
+              onChange={(e) =>
+                handleToolChange(index, "useCase", e.target.value)
+              }
+              className="w-full p-3 border rounded-lg"
+            >
+              <option value="">Primary Use Case</option>
+
+              <option value="coding">Coding</option>
+              <option value="writing">Writing</option>
+              <option value="research">Research</option>
+              <option value="data">Data</option>
+              <option value="mixed">Mixed</option>
+            </select>
           </div>
         ))}
 
